@@ -1,0 +1,16 @@
+# Código que calcula as atenuações em um radioenlace ocorridas no espaço livre
+
+import math
+
+
+def at_espacolivre(freq, distenlace):
+    at_espaco_livre = 32.4 + 20 * math.log((freq/1000)*distenlace, 10)
+    return at_espaco_livre
+
+
+def at_absorcao_atm(dist, freq, densidade_vapor):
+    at_seco = (7.19 * (10**(-3)) + (6.09/((freq**2)+0.227) + (4.81/(((freq-57)**2)+1.5)))) * freq**2 * (10**(-3))
+    at_umido = (0.05 + (0.0021*densidade_vapor) + (3.6/(((freq-22.2)**2)+8.5)) + (10.6/(((freq - 183.3)**2)+9)) +
+                (8.9/(((freq - 325.4)**2)+26.3))) * densidade_vapor * freq**2 * (10**(-4))
+    atenuacao_absorcao_atm = (at_seco + at_umido) * dist
+    return atenuacao_absorcao_atm
