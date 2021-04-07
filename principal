@@ -1,0 +1,81 @@
+# Programa que pede entrada de dados e retorna as atenuações, a atenuação total, a potência de recepção e a margem do enlace
+
+import calculos
+import atenuacoesespacolivre
+import atenuacaochuva
+
+# Dados de entrada do programa
+
+print('Bem vindo! Insira os dados necessários para o cálculo das perdas devido à propagação atmosférica.')
+freq = float(input('Digite a frequência em GHz: '))
+potencia_antena_1 = float(input('Informe a potência da Antena Tx em dBm: '))
+ganho_antena_1 = float(input('Informe o Ganho da Antena Tx em dBi: '))
+ganho_antena_2 = float(input('Informe o ganho da Antena Rx em dBi: '))
+print('Informe as coordenadas dos pontos que estão localizadas as antenas:')
+lat1 = float(input('Digite a latitude decimal da antena Tx: '))
+lon1 = float(input('Digite a longitude decimal da antena Tx: '))
+lat2 = float(input('Digite a latitude decimal da antena Rx: '))
+lon2 = float(input('Digite a latitude decimal da antena Rx: '))
+distenlace = calculos.dist(lat1, lon1, lat2, lon2)
+print("A distância entre as duas torres em km é: ", distenlace, " km")
+densidade_vapor = float(input("Digite a densidade do vapor de água em kg/m³: "))
+intensidade_chuva = float(input('Digite a intensidade de chuva excedida durante 0,01% do tempo em mm/h: '))
+potencia_de_limiar = float(input('Digite a potência limiar de recepção do equipamento em dBm: '))
+comprimento_dos_cabos = float(input('Digite o comprimento dos cabos para conectar a antena m: '))
+perda_nos_cabos = float(input("Digite a perda nos cabos em dB/m"))
+polarizacao = input('Informe o tipo de polarização do enlace:\n'
+                    '1 - Horizontal\n'
+                    '2 - Vertical\n'
+                    '3 - Circular\n'
+                    '4 - Linear\n')
+comp_de_onda = 3 * (10**8) / freq
+
+
+if freq < 10:
+    atenuacao_absorcao_atm = 0
+    print('As perdas pelos gases da atmosfera não são consideradas em frequências abaixo de 10 GHz')
+
+else:
+    atenuacao_absorcao_atm = atenuacoesespacolivre.at_absorcao_atm(distenlace, freq, densidade_vapor)
+    print('A atenuação pelos gases da atmosfera é ', atenuacao_absorcao_atm, 'db')
+
+atenuacao_espaco_livre = atenuacoesespacolivre.at_espacolivre(freq, distenlace)
+
+print('A atenuação no espaço livre é ', atenuacao_espaco_livre, 'dB')
+
+at_pela_atmosfera = atenuacao_absorcao_atm + atenuacao_espaco_livre
+print('As perdas de propagação na atmosfera é de ', at_pela_atmosfera, 'db')
+
+if freq > 5:
+    atenuacao_chuva = 0
+    print("A perdas de propagação causadas pelas chuvas não são consideradas em frequências abaixo de 5 GHz")
+else:
+    kh = atenuacaochuva.khorizontal(freq)
+    ah = atenuacaochuva.alfahorizontal(freq)
+    kv = atenuacaochuva.kvertical(freq)
+    av = atenuacaochuva.alfavertical(freq)
+    if polarizacao == '1':
+        caminho_efetivo = atenuacaochuva.caminho_efetivo(distenlace, intensidade_chuva, ah, kh)
+        atenuacao_chuva = atenuacaochuva.at_especifica_chuva(ah, kh, intensidade_chuva, caminho_efetivo)
+    elif polarizacao == '2':
+        caminho_efetivo = atenuacaochuva.caminho_efetivo(distenlace, intensidade_chuva, av, kv)
+        atenuacao_chuva = atenuacaochuva.at_especifica_chuva(av, kv, intensidade_chuva, caminho_efetivo)
+    elif polarizacao == '3' or polarizacao == '4':
+        angulo = input(float('Digite o ângulo de elevação do trajeto em graus: '))
+        kcl = atenuacaochuva.k_circular_e_linear(kh, kv, angulo)
+        alfa = atenuacaochuva.alfa_circular_e_linear(kh, kv, kcl, av, ah, angulo)
+        caminho_efetivo = atenuacaochuva.caminho_efetivo(distenlace, intensidade_chuva, alfa, kcl)
+        atenuacao_chuva = atenuacaochuva.at_especifica_chuva(alfa, kcl, intensidade_chuva, caminho_efetivo)
+
+    print('A atenuação no enlace devido as chuvas é de ', atenuacao_chuva, 'dB')
+
+atenuacao_cabos = comprimento_dos_cabos * perda_nos_cabos
+atenuacao_total = at_pela_atmosfera + atenuacao_chuva + atenuacao_cabos
+print('A atenuação total do sistema é de ', atenuacao_total, 'dB')
+
+potencia_de_recepcao = potencia_antena_1 + ganho_antena_1 + ganho_antena_2 - atenuacao_total
+print('A potência de recepção do sistema é ', potencia_de_recepcao, 'dBm')
+
+
+margem_do_enlace = potencia_de_recepcao - potencia_de_limiar
+print('A margem do enlace é de ', margem_do_enlace, 'dB')
