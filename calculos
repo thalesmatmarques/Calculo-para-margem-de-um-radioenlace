@@ -1,0 +1,12 @@
+# Código para calcular alguns parâmetros que serão utilizados após a entrada de parâmetros
+
+import math
+
+def dist(lat1, lng1, lat2, lng2):
+    rad = math.pi / 180
+    dlat = float(lat2) - float(lat1)
+    dlng = float(lng2) - float(lng1)
+    a = (math.sin(rad * dlat / 2)) ** 2 + math.cos(rad * float(lat1)) * math.cos(rad * float(lat2)) * \
+        (math.sin(rad * dlng / 2)) ** 2
+    distancia = 2 * 6371 * math.asin(math.sqrt(a))
+    return distancia
